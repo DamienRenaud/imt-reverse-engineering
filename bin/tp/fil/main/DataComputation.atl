@@ -1,0 +1,38 @@
+-- @nsURI Java=http://www.eclipse.org/MoDisco/Java/0.2.incubation/java
+-- @path Data=/tp.fil/src/tp/fil/resources/Data.ecore
+
+module DataComputation;
+create OUT : Data from IN : Java;
+
+-- TO BE COMPLETED
+
+rule createModel {
+	from s : Java!Model
+	to t : Data!Model(
+		classes <- Java!ClassDeclaration->allInstances()->select(c | if c.package.oclIsUndefined() then false else c.package.name = 'model' 
+			and if c.package.package.oclIsUndefined() then false else c.package.package.name = 'petstore' endif endif)
+	)
+}
+
+rule ClassDeclaration2Class {
+	from 
+		s : Java!ClassDeclaration
+		(if s.package.oclIsUndefined() then false else s.package.name = 'model' 
+			and if s.package.package.oclIsUndefined() then false else s.package.package.name = 'petstore' endif endif)
+
+	to
+		t : Data!Class (
+			name <- s.name,
+			fields <- s.bodyDeclarations->select(d | d.oclIsTypeOf(Java!FieldDeclaration))->collect(fd | thisModule.FieldDeclaration2Field(fd))
+		)
+		
+}
+
+lazy rule FieldDeclaration2Field {
+	from s : Java!FieldDeclaration
+	to t : Data!Field (
+		name <- s.fragments->first().name,
+		modifier <- s.modifier.visibility.toString(),
+		type <- s.type.type.name
+	)
+}
